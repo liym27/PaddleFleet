@@ -14,16 +14,17 @@
 
 import paddle
 import paddle.distributed as dist
-from typing import Optional, TYPE_CHECKING, Union
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
+from typing import Optional, Callable, Union, Iterable
+# if TYPE_CHECKING:
+#     from collections.abc import Callable
+from paddle.distributed.fleet.meta_parallel.sharding.group_sharded_fully_shard import FullyShard
+from paddle.distributed.auto_parallel.fully_shard import FullyShardAuto
 
 def in_auto_parallel_mode() -> bool:
     return False
 
 
-@dataclass
+# @dataclass
 class MixedPrecisionPolicy:
     param_dtype: Optional[paddle.dtype] = None
     reduce_dtype: Optional[paddle.dtype] = None
@@ -31,7 +32,7 @@ class MixedPrecisionPolicy:
     cast_forward_inputs: bool = True
 
 
-@dataclass
+# @dataclass
 class OffloadPolicy:
     pin_memory: bool = True
 
@@ -45,8 +46,7 @@ def _fully_shard_manual_parallel(
     offload_policy,
     ignored_params,
 ):
-    # TODO: Implement manual parallel logic
-    pass
+    return FullyShard(module)
 
 
 def _fully_shard_auto_parallel(
@@ -58,14 +58,13 @@ def _fully_shard_auto_parallel(
     offload_policy,
     ignored_params,
 ):
-    # TODO: Implement auto parallel logic
-    pass
+    FullyShardAuto(module, mesh)
 
 
 def fully_shard(
     module: paddle.nn.Layer,
     *,
-    mesh: dist.ProcessMesh,
+    mesh: dist.ProcessMesh = None,
     reshard_after_forward: Optional[Union[bool, int]] = None,
     shard_placement_fn: Optional[Callable[[paddle.Tensor],
                                           Optional[dist.Shard]]] = None,
@@ -89,7 +88,8 @@ def fully_shard(
         offload_policy,
         ignored_params_set,
     )
-    if in_auto_parallel_mode():
+    # if in_auto_parallel_mode():
+    if hasattr(module, "auto_dist_config"):
         return _fully_shard_auto_parallel(*args)
     else:
         return _fully_shard_manual_parallel(*args)
